@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BountyScope — bug bounty intel + on-demand contract analysis</title>
+<meta name="description" content="Curated DeFi bug bounty programs ranked by max payout. AI-assisted contract analysis. For bounty hunters, security researchers, and protocol teams.">
+<style>
+:root { --bg:#07080a; --fg:#eef0f3; --muted:#7a8898; --accent:#a78bfa; --critical:#ef4444; --high:#f97316; --medium:#eab308; --low:#22c55e; --card:#10131a; --border:#1f2733; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,system-ui,sans-serif;line-height:1.6;padding:32px 16px;max-width:880px;margin:0 auto;font-size:16px}
+header{text-align:center;padding:24px 0 32px}
+h1{font-size:42px;letter-spacing:-0.03em}
+h1 .scope{color:var(--accent)}
+.tag{color:var(--muted);font-size:18px;margin-top:6px}
+section{margin:32px 0}
+h2{font-size:22px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{background:#15191f;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:0.05em;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+tr:hover{background:#0e1117}
+.bounty{font-weight:700;color:var(--accent)}
+.status{padding:2px 8px;border-radius:10px;font-size:11px;background:#0a0c10}
+.status.live{color:var(--low)}
+textarea{width:100%;min-height:160px;background:#0a0c10;color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:ui-monospace,monospace;font-size:12px;resize:vertical}
+button{background:var(--accent);color:#000;border:0;padding:10px 20px;border-radius:6px;font-weight:600;cursor:pointer;margin-top:8px}
+button:hover{filter:brightness(1.1)}
+.result{background:#0a0c10;border:1px solid var(--border);border-radius:6px;padding:14px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;margin-top:12px;min-height:40px;color:var(--muted)}
+.finding{padding:8px 0;border-bottom:1px solid var(--border)}
+.finding:last-child{border-bottom:0}
+.sev{display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;text-transform:uppercase}
+.sev.critical{background:var(--critical);color:#fff}
+.sev.high{background:var(--high);color:#000}
+.sev.medium{background:var(--medium);color:#000}
+.sev.low{background:var(--low);color:#000}
+.code{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:ui-monospace,monospace;font-size:13px;white-space:pre;overflow-x:auto}
+footer{text-align:center;color:var(--muted);font-size:13px;border-top:1px solid var(--border);padding-top:14px;margin-top:36px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.disclaimer{color:var(--muted);font-size:13px;background:var(--card);border-left:3px solid var(--medium);padding:10px 14px;border-radius:4px;margin:14px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bounty<span class="scope">Scope</span></h1>
+  <p class="tag">Bug bounty intel for DeFi. Find high-EV targets. Analyze in seconds.</p>
+</header>
+
+<section>
+  <h2>Top programs by max payout</h2>
+  <div id="programs">loading…</div>
+  <p class="disclaimer">Curated list. Confirm scope, terms, and bounty limits on each program's official page before submitting reports. BountyScope provides intel; the legal hunting happens within each program's published rules.</p>
+</section>
+
+<section>
+  <h2>On-demand analysis</h2>
+  <p>Paste a Solidity contract or function. Get a first-pass attack-surface map and ranked vulnerability classes to investigate.</p>
+  <textarea id="code" placeholder="// Paste Solidity code or a description of a function under audit
+contract Vault {
+  mapping(address => uint256) public balances;
+  function withdraw(uint256 amount) external {
+    require(balances[msg.sender] >= amount);
+    (bool ok,) = msg.sender.call{value: amount}('');
+    require(ok);
+    balances[msg.sender] -= amount;
+  }
+}"></textarea>
+  <button onclick="analyze()">Analyze</button>
+  <div id="r" class="result">—</div>
+  <p class="disclaimer">Output is a first-pass heuristic from an LLM trained for adversarial review. NOT a substitute for senior human auditing. Use as a focus map, not a verdict.</p>
+</section>
+
+<section>
+  <h2>API</h2>
+  <p><code>GET /api/programs</code> — full program list as JSON</p>
+  <p><code>POST /api/analyze</code> — body: <code>{code, program_id?, repo_url?}</code> → finding classes</p>
+  <p><code>GET /api/status</code> — system health</p>
+</section>
+
+<section>
+  <h2>For who</h2>
+  <ul style="margin-left:20px;color:var(--muted);font-size:14px;line-height:1.8">
+    <li><strong>Bounty hunters</strong> — see what's worth your time. $1M payouts beat $5K payouts; sort accordingly.</li>
+    <li><strong>Protocol teams</strong> — monitor what programs your competitors run, identify uncovered surface area.</li>
+    <li><strong>Security researchers</strong> — get a first-pass attack-surface map before deep audit.</li>
+    <li><strong>Insurance underwriters</strong> — quantify risk by program's stated bounty ceiling.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>BountyScope • <a href="/api/programs">API</a> • Public bounty info from Immunefi / Code4rena / Sherlock — links are to source</p>
+  <p style="margin-top:10px">Sister products:</p>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px">
+    <a style="background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:14px;font-size:12px;text-decoration:none" href="https://promptscope.ivixivi.workers.dev">PromptScope</a>
+    <a style="background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:14px;font-size:12px;text-decoration:none" href="https://edgarflash.ivixivi.workers.dev">EdgarFlash</a>
+    <a style="background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:14px;font-size:12px;text-decoration:none" href="https://writelens.ivixivi.workers.dev">WriteLens</a>
+    <a style="background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:14px;font-size:12px;text-decoration:none" href="https://trendpulse.ivixivi.workers.dev">TrendPulse</a>
+    <a style="background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:14px;font-size:12px;text-decoration:none" href="https://vulnpulse.ivixivi.workers.dev">VulnPulse</a>
+  </div>
+</footer>
+
+<script>
+async function loadPrograms() {
+  try {
+    const r = await fetch('/api/programs');
+    const d = await r.json();
+    const out = document.getElementById('programs');
+    if (!d.programs || d.programs.length === 0) {
+      out.innerHTML = '<em>No programs yet.</em>'; return;
+    }
+    out.innerHTML = `<table>
+      <tr><th>Program</th><th>Max Bounty</th><th>Ecosystem</th><th>Status</th><th>Source</th></tr>
+      ${d.programs.map(p => `
+        <tr>
+          <td><a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a></td>
+          <td class="bounty">$${(p.max_bounty_usd ?? 0).toLocaleString()}</td>
+          <td>${escapeHtml(p.ecosystem ?? '')}</td>
+          <td><span class="status live">${escapeHtml(p.status ?? 'live')}</span></td>
+          <td>${escapeHtml(p.source ?? '')}</td>
+        </tr>
+      `).join('')}
+    </table>`;
+  } catch (e) {
+    document.getElementById('programs').textContent = 'feed unavailable';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function analyze() {
+  const code = document.getElementById('code').value;
+  const r = document.getElementById('r');
+  r.textContent = 'analyzing… (10–20s)';
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, program_id: 'web-demo' }),
+    });
+    const d = await resp.json();
+    if (!resp.ok) { r.textContent = 'Error: ' + (d.error || resp.status); return; }
+    let html = `<strong>Attack surface</strong>\n${escapeHtml(d.attack_surface_summary)}\n\n<strong>Findings (${d.finding_classes.length})</strong>`;
+    for (const f of d.finding_classes) {
+      const sev = (f.severity || 'medium').toLowerCase();
+      html += `\n\n<div class="finding"><span class="sev ${sev}">${escapeHtml(sev)}</span> <strong>${escapeHtml(f.class)}</strong>\n${escapeHtml(f.rationale)}\n<em>${(f.locations||[]).map(escapeHtml).join(', ')}</em></div>`;
+    }
+    if (d.recommended_focus?.length) {
+      html += `\n\n<strong>Deep-dive next</strong>\n${d.recommended_focus.map(escapeHtml).join('\n')}`;
+    }
+    r.innerHTML = html;
+  } catch (e) {
+    r.textContent = 'Network: ' + e.message;
+  }
+}
+
+loadPrograms();
+</script>
+
+</body>
+</html>
