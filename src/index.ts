@@ -74,17 +74,17 @@ const SUB_PREFIX = 'sub:';
 interface ApiKeyRecord { tier: Tier; quote_id: string; issued_at: string; }
 
 // API keys are bearer secrets: `bsk_` + 48 hex chars (24 random bytes).
-function genApiKey(): string {
+export function genApiKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   return 'bsk_' + [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function normalizeTier(t: unknown): Tier {
+export function normalizeTier(t: unknown): Tier {
   return t === 'team' ? 'team' : t === 'pro' ? 'pro' : 'free';
 }
 
 // Accept the key from either `Authorization: Bearer <key>` or `x-api-key`.
-function extractApiKey(req: Request): string | null {
+export function extractApiKey(req: Request): string | null {
   const auth = req.headers.get('authorization');
   if (auth) {
     const m = /^Bearer\s+(\S+)/i.exec(auth);
@@ -110,7 +110,7 @@ async function resolveAccess(req: Request, env: Env): Promise<{ tier: Tier; key:
 
 // Per-day analyzer quota. Keyed by API key when present, else by client IP so the
 // free tier can't be trivially reset. 48h TTL covers timezone slop around midnight.
-function quotaIdent(req: Request, key: string | null): string {
+export function quotaIdent(req: Request, key: string | null): string {
   return key ?? `ip:${req.headers.get('cf-connecting-ip') ?? 'unknown'}`;
 }
 
@@ -316,7 +316,7 @@ Classes to consider: reentrancy, oracle manipulation, access control, integer ov
 
 Return ONLY JSON.`;
 
-function tryParseJson(s: unknown): any | null {
+export function tryParseJson(s: unknown): any | null {
   if (s == null) return null;
   if (typeof s === 'object') return s;
   const str = typeof s === 'string' ? s : String(s);
