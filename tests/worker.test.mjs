@@ -1,3 +1,4 @@
+/* global Response, Request */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -54,46 +55,6 @@ function analysisPayload() {
   };
 }
 
-function makePayrail() {
-  const calls = [];
-
-  return {
-    calls,
-    binding: {
-      async fetch(req) {
-        const url = new URL(req.url);
-        const body = await req.clone().text().catch(() => '');
-        calls.push({ method: req.method, url, headers: new Headers(req.headers), body });
-
-        if (url.pathname === '/pay') {
-          return Response.json({
-            quote_id: 'quote_123',
-            pay_to: {
-              rail: 'crypto',
-              chain: 'base',
-              asset: 'USDC',
-              address: '0x0000000000000000000000000000000000000049',
-              amount: url.searchParams.get('amount'),
-            },
-            checkout: null,
-            instructions: 'Send exact USDC amount with the quote id as memo.',
-            expires_in_seconds: 900,
-          });
-        }
-
-        if (url.pathname === '/receipt' && req.method === 'POST') {
-          return Response.json({ ok: true, receipt: { id: 'receipt_123', accepted: true } });
-        }
-
-        if (url.pathname === '/receipt/quote_123') {
-          return Response.json({ ok: true, quote_id: 'quote_123' });
-        }
-
-        return new Response('not found', { status: 404 });
-      },
-    },
-  };
-}
 
 function makeEnv(overrides = {}) {
   const aiCalls = [];
