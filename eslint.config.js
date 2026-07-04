@@ -8,6 +8,14 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    languageOptions: {
+      globals: {
+        URL: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+      },
+    },
     rules: {
       // The Worker leans on `any` for the Workers AI binding and a few JSON
       // boundaries; allow it rather than paper over with bogus types.
