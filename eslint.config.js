@@ -19,4 +19,15 @@ export default tseslint.config(
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
+  {
+    files: ['tests/**'],
+    languageOptions: {
+      globals: {
+        URL: 'readonly',
+        Headers: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+      },
+    },
+  },
 );
