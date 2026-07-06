@@ -1,5 +1,5 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
+import { assert } from 'vitest';
+import { test } from 'vitest';
 
 import worker from '../src/index.ts';
 
