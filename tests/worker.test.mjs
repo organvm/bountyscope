@@ -1,3 +1,4 @@
+/* global URL, Headers, Response, Request */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
