@@ -1,5 +1,4 @@
-import { assert } from 'vitest';
-import { test } from 'vitest';
+import { assert, test } from 'vitest';
 import worker from '../src/index.ts';
 
 const BASE_URL = 'https://bountyscope.test';
@@ -70,26 +69,31 @@ test('/api/analyze handles malformed AI output', async () => {
   assert.equal(body.error, 'analysis output malformed');
 });
 
-test('/api/subscribe handles payrail error', async () => {
-  const env = makeEnv({
-    PAYRAIL: {
-      async fetch() { return new Response('error', { status: 500 }); }
-    }
-  });
-  const { response, body } = await fetchJson(env, '/api/subscribe', jsonRequest({ tier: 'pro' }));
-  assert.equal(response.status, 502);
-  assert.match(body.error, /rail_unavailable/);
+test('/api/subscribe handles stripe error', async () => {
+  const env = makeEnv({ STRIPE_SECRET_KEY: 'test_key' });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('stripe error text', { status: 500 });
+  
+  try {
+    const { response, body } = await fetchJson(env, '/api/subscribe', jsonRequest({ tier: 'pro' }));
+    assert.equal(response.status, 502);
+    assert.equal(body.error, 'stripe_error');
+    assert.equal(body.detail, 'stripe error text');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
-test('/api/confirm handles payrail error', async () => {
-  const env = makeEnv({
-    PAYRAIL: {
-      async fetch() { return new Response('error', { status: 500 }); }
-    }
-  });
-  await env.BS_REPORTS.put('pending:quote-1', JSON.stringify({ tier: 'pro', quote_id: 'quote-1' }));
+test('/api/confirm handles stripe error', async () => {
+  const env = makeEnv({ STRIPE_SECRET_KEY: 'test_key' });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('error', { status: 500 });
   
-  const { response, body } = await fetchJson(env, '/api/confirm', jsonRequest({ quote_id: 'quote-1', tx_hash: '0x123' }));
-  assert.equal(response.status, 502);
-  assert.equal(body.error, 'receipt_rejected');
+  try {
+    const { response, body } = await fetchJson(env, '/api/confirm', jsonRequest({ session_id: 'cs_test_123' }));
+    assert.equal(response.status, 502);
+    assert.equal(body.error, 'stripe_error');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
